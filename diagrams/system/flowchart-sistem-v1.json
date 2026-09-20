@@ -1,0 +1,46 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Flowchart sistem platform fashion second-hand",
+    "output": "diagrams/system/flowchart-sistem-v1.html",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    { "id": "core", "label": "Buyer, seller, platform, dan layanan eksternal" }
+  ],
+  "mainPath": [
+    "listing",
+    "curation",
+    "browse",
+    "offer",
+    "checkout",
+    "method",
+    "validation",
+    "release"
+  ],
+  "nodes": [
+    { "id": "listing", "lane": "core", "col": 0, "type": "external", "label": "Buat listing", "sublabel": "Seller + foto produk" },
+    { "id": "curation", "lane": "core", "col": 1, "type": "backend", "label": "Kurasi produk", "sublabel": "Rating dan kondisi" },
+    { "id": "browse", "lane": "core", "col": 2, "type": "frontend", "label": "Cari produk", "sublabel": "Harga pasar" },
+    { "id": "offer", "lane": "core", "col": 3, "type": "frontend", "label": "Ajukan offer", "sublabel": "Min. seller" },
+    { "id": "checkout", "lane": "core", "col": 4, "width": 150, "type": "security", "label": "Bayar dan tahan dana", "sublabel": "DP atau penuh" },
+    { "id": "method", "lane": "core", "col": 5, "yOffset": -50, "type": "frontend", "label": "Pilih metode", "sublabel": "COD atau pengiriman" },
+    { "id": "delivery", "lane": "core", "col": 5, "yOffset": 10, "type": "external", "label": "Kirim barang", "sublabel": "Resi dan paket" },
+    { "id": "validation", "lane": "core", "col": 5, "yOffset": 70, "width": 150, "type": "backend", "label": "Validasi dan bukti", "sublabel": "Resi, unboxing, konfirmasi" },
+    { "id": "release", "lane": "core", "col": 5, "yOffset": 130, "type": "database", "label": "Teruskan dana", "sublabel": "Transaksi selesai" },
+    { "id": "refund", "lane": "core", "col": 5, "yOffset": 190, "type": "security", "label": "Proses refund", "sublabel": "Barang tidak sesuai" }
+  ],
+  "edges": [
+    { "from": "listing", "to": "curation", "label": "diajukan", "role": "main" },
+    { "from": "curation", "to": "browse", "label": "ditampilkan", "role": "main" },
+    { "from": "browse", "to": "offer", "label": "dipilih", "role": "main" },
+    { "from": "offer", "to": "checkout", "label": "disetujui", "role": "main" },
+    { "from": "checkout", "to": "method", "label": "berhasil", "role": "main" },
+    { "from": "method", "to": "delivery", "label": "Pengiriman", "role": "branch" },
+    { "from": "delivery", "to": "validation", "label": "resi + unboxing", "role": "main" },
+    { "from": "method", "to": "validation", "label": "COD", "role": "branch" },
+    { "from": "validation", "to": "release", "label": "sesuai", "role": "main" },
+    { "from": "validation", "to": "refund", "label": "tidak sesuai", "role": "error" }
+  ]
+}

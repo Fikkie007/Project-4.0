@@ -1,0 +1,45 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Alur transaksi SLA",
+    "quality_profile": "showcase",
+    "viewBox": [780, 1146]
+  },
+  "lanes": [
+    { "id": "buyer", "label": "Buyer" },
+    { "id": "platform", "label": "Platform" },
+    { "id": "seller", "label": "Seller" }
+  ],
+  "nodes": [
+    { "id": "start", "lane": "buyer", "col": 0, "type": "external", "label": "Mulai" },
+    { "id": "payment-choice", "lane": "buyer", "col": 1, "type": "frontend", "label": "Pembayaran?" },
+    { "id": "dp-paid", "lane": "buyer", "col": 2, "type": "frontend", "label": "Bayar DP", "yOffset": -42 },
+    { "id": "dp-cancel", "lane": "platform", "col": 3, "type": "backend", "label": "Batal?" },
+    { "id": "full-paid", "lane": "buyer", "col": 2, "type": "frontend", "label": "Bayar penuh", "yOffset": 42 },
+    { "id": "method-choice", "lane": "buyer", "col": 4, "type": "frontend", "label": "Metode?" },
+    { "id": "cod-settle", "lane": "platform", "col": 5, "type": "backend", "label": "Validasi lunas", "yOffset": -42 },
+    { "id": "ship", "lane": "seller", "col": 5, "type": "external", "label": "Kirim + resi", "yOffset": -42 },
+    { "id": "evidence", "lane": "buyer", "col": 5, "type": "frontend", "label": "Bukti terima" },
+    { "id": "confirm", "lane": "platform", "col": 5, "type": "backend", "label": "Konfirmasi", "yOffset": 42 },
+    { "id": "complete", "lane": "platform", "col": 5, "type": "backend", "label": "Selesai", "yOffset": 110 },
+    { "id": "release", "lane": "seller", "col": 5, "type": "external", "label": "Dana ke seller", "yOffset": 42 }
+  ],
+  "edges": [
+    { "id": "start-payment", "from": "start", "to": "payment-choice", "role": "main" },
+    { "id": "payment-dp", "from": "payment-choice", "to": "dp-paid", "label": "DP", "role": "branch" },
+    { "id": "payment-full", "from": "payment-choice", "to": "full-paid", "label": "Penuh", "role": "branch" },
+    { "id": "dp-cancel-check", "from": "dp-paid", "to": "dp-cancel", "role": "main", "route": "outside-right" },
+    { "id": "cancelled", "from": "dp-cancel", "to": "release", "label": "Ya: DP kembali ke seller", "role": "branch" },
+    { "id": "continue-dp", "from": "dp-cancel", "to": "method-choice", "label": "Tidak", "role": "main" },
+    { "id": "full-method", "from": "full-paid", "to": "method-choice", "role": "main" },
+    { "id": "cod-validation", "from": "method-choice", "to": "cod-settle", "label": "COD", "role": "branch" },
+    { "id": "shipping", "from": "method-choice", "to": "ship", "label": "Pengiriman: wajib bayar penuh", "role": "branch" },
+    { "id": "shipment-evidence", "from": "ship", "to": "evidence", "role": "main" },
+    { "id": "cod-confirm", "from": "cod-settle", "to": "confirm", "role": "main" },
+    { "id": "evidence-confirm", "from": "evidence", "to": "confirm", "role": "main" },
+    { "id": "transaction-complete", "from": "confirm", "to": "complete", "label": "Kedua pihak setuju", "role": "main" },
+    { "id": "release-funds", "from": "complete", "to": "release", "role": "main" }
+  ],
+  "mainPath": ["start", "payment-choice", "full-paid", "method-choice", "cod-settle", "confirm", "complete", "release"]
+}

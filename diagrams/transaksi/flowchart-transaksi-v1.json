@@ -1,0 +1,41 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Alur transaksi platform fashion second-hand",
+    "output": "diagrams/transaksi/flowchart-transaksi-v1.html",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    { "id": "main", "label": "Alur transaksi" },
+    { "id": "exception", "label": "Refund", "variant": "exception" }
+  ],
+  "mainPath": [
+    "listing",
+    "curation",
+    "browse",
+    "payment",
+    "method",
+    "validation",
+    "release"
+  ],
+  "nodes": [
+    { "id": "listing", "lane": "main", "col": 0, "type": "external", "label": "Buat listing", "sublabel": "Minimal 3 foto" },
+    { "id": "curation", "lane": "main", "col": 1, "type": "backend", "label": "Kurasi produk", "sublabel": "Rating kondisi" },
+    { "id": "browse", "lane": "main", "col": 2, "type": "frontend", "label": "Pilih produk", "sublabel": "Lihat harga pasar" },
+    { "id": "payment", "lane": "main", "col": 3, "width": 160, "type": "security", "label": "Bayar melalui platform", "sublabel": "DP atau penuh" },
+    { "id": "method", "lane": "main", "col": 4, "width": 160, "type": "frontend", "label": "Pilih metode transaksi", "sublabel": "COD atau pengiriman" },
+    { "id": "validation", "lane": "main", "col": 5, "width": 130, "type": "backend", "label": "Validasi transaksi", "sublabel": "COD, resi, dan unboxing" },
+    { "id": "refund", "lane": "exception", "col": 5, "type": "security", "label": "Proses refund", "sublabel": "Tidak sesuai" },
+    { "id": "release", "lane": "main", "col": 5, "yOffset": 88, "type": "database", "label": "Teruskan dana", "sublabel": "Transaksi selesai" }
+  ],
+  "edges": [
+    { "from": "listing", "to": "curation", "label": "diajukan", "role": "main" },
+    { "from": "curation", "to": "browse", "label": "ditampilkan", "role": "main" },
+    { "from": "browse", "to": "payment", "label": "checkout", "role": "main" },
+    { "from": "payment", "to": "method", "label": "dana ditahan", "role": "main" },
+    { "from": "method", "to": "validation", "label": "COD atau pengiriman", "role": "main" },
+    { "from": "validation", "to": "release", "label": "sesuai", "role": "main" },
+    { "from": "validation", "to": "refund", "label": "tidak sesuai", "role": "error" }
+  ]
+}
