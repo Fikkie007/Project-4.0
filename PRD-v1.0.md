@@ -24,32 +24,39 @@ Target untuk 90 hari pertama:
 
 ### Masuk MVP
 
-- Listing fashion dengan minimal 3 foto
-- Kurasi dan rating kondisi
-- Offer harga
-- Pembayaran melalui virtual account (VA) dan e-wallet
+- Upload listing fashion oleh seller
+- Seller menentukan kondisi barang 1-100% dan menjelaskan kekurangan serta kondisi fisiknya
+- Offer atau bidding dengan aturan ghosting 48 jam
 - Transaksi COD dan pengiriman
-- Hold, payout, refund, dan komplain
+- Live chat buyer dan seller
+- Registrasi dan verifikasi melalui OTP WhatsApp
+- Pengelolaan dana secara manual, refund, dan sistem report
+- Rating, review, last login, suspend, dan ban
 - Median harga pasar sederhana
 
 ### Ditunda
 
-- Chat buyer dan seller
 - Kupon dan promo
 - Keranjang multi-produk
 - Social login
 - Integrasi otomatis status ekspedisi
 - Verifikasi autentikasi brand secara otomatis
+- Sistem kurator dan validasi barang oleh kurator
+- Afiliasi atau komisi kurator
+- Dukungan cryptocurrency
 
 ## Release gate MVP
 
 MVP belum dirilis sebelum skenario berikut lulus pengujian end-to-end:
 
-1. COD dengan DP sampai payout seller.
-2. Pengiriman dengan pembayaran penuh sampai auto-release.
+1. COD dengan pengelolaan dana manual sampai penyelesaian transaksi.
+2. Pengiriman dengan pembayaran penuh sampai penyelesaian transaksi.
 3. Refund karena kesalahan seller.
 4. Buyer atau seller tidak hadir saat COD.
-5. Pembayaran gagal dan rekonsiliasi dana.
+5. Seller atau buyer melanggar aturan ghosting 48 jam.
+6. Pembayaran kurang, lebih, duplikat, tidak dapat diverifikasi, dan rekonsiliasi
+   manual.
+7. Auto-release gagal dijalankan dan dapat diproses ulang tanpa payout ganda.
 
 ## Status transaksi
 
@@ -59,7 +66,6 @@ Platform menyimpan tiga kelompok status secara terpisah.
 
 - `payment_pending`
 - `paid`
-- `payment_failed`
 - `refunded`
 
 ### Fulfillment state
@@ -78,34 +84,25 @@ Platform menyimpan tiga kelompok status secara terpisah.
 - `paid_out`
 - `payout_failed`
 
-`payment_failed` hanya dapat diubah oleh webhook payment provider atau proses
-rekonsiliasi admin. Buyer dapat mencoba pembayaran ulang tanpa membuat transaksi
-baru. Platform tidak melakukan payout sebelum `payment_state` menjadi `paid`.
+Status pembayaran dicatat dan diperbarui oleh platform berdasarkan bukti
+pembayaran serta verifikasi admin. Platform tidak meneruskan dana kepada seller
+sebelum pembayaran diverifikasi.
 
 ### Pemilik perubahan status
 
 - Buyer: membuat offer, melakukan pembayaran, memberi konfirmasi, dan mengajukan komplain
 - Seller: menerima offer, mengunggah resi, dan menandai COD selesai
-- Payment provider: mengirim payment webhook
-- Platform: menjalankan auto-release, refund, payout, dan rekonsiliasi
+- Platform: memverifikasi pembayaran, mengelola dana manual, menjalankan refund,
+  payout, dan penyelesaian transaksi
 - Admin: melakukan override terbatas dengan audit log
 
 ### Batasan override admin
 
 - Admin wajib memasukkan alasan dan bukti untuk setiap override.
 - Semua override wajib dicatat dalam audit log.
-- Admin tidak boleh mengubah `paid` tanpa hasil rekonsiliasi payment provider.
-- Admin tidak boleh mengubah `paid_out` tanpa konfirmasi payout berhasil.
+- Admin tidak boleh mengubah `paid` tanpa bukti pembayaran yang diverifikasi.
+- Admin tidak boleh mengubah `paid_out` tanpa konfirmasi pemindahan dana berhasil.
 - Refund di atas Rp5.000.000 memerlukan persetujuan dua admin.
-
-### Payment webhook dan rekonsiliasi
-
-- Platform memverifikasi signature setiap webhook.
-- Platform menolak webhook duplikat atau replay.
-- Platform menyimpan payload webhook mentah untuk audit.
-- Platform mencoba ulang pemrosesan webhook maksimal 5 kali.
-- Platform menjalankan rekonsiliasi otomatis setiap 15 menit.
-- Perbedaan status ditandai sebagai `reconciliation_required`.
 
 ## Fitur produk
 
@@ -114,29 +111,41 @@ baru. Platform tidak melakukan payout sebelum `payment_state` menjadi `paid`.
 1. Seller wajib menentukan harga jual langsung dan harga minimum penawaran.
 2. Buyer dapat membeli langsung sesuai harga jual tanpa mengirim offer.
 3. Buyer dapat mengajukan offer di bawah harga jual berdasarkan harga minimum.
-3. Setelah seller menerima offer, listing berubah menjadi `reserved`.
-4. Buyer memiliki 1 x 24 jam untuk menyelesaikan pembayaran.
-5. Buyer lain tidak dapat membeli atau mengajukan offer selama listing berstatus `reserved`.
-6. Jika buyer tidak membayar dalam batas waktu, listing kembali berstatus `active`.
-7. Seller tidak dapat menerima offer lain selama listing berstatus `reserved`.
-8. Platform menolak offer di bawah harga minimum secara otomatis.
-9. Buyer dapat mengirim offer baru selama listing masih berstatus `active`.
-10. Harga minimum tidak ditampilkan kepada buyer.
-11. Seller dapat mengubah harga minimum sebelum ada offer yang diterima.
-12. Satu buyer hanya boleh memiliki satu offer aktif per listing.
-13. Buyer dapat membatalkan offer sebelum seller menerimanya.
-14. Buyer dapat mengirim offer baru setelah offer sebelumnya ditolak atau
+4. Setelah seller menerima offer, listing berubah menjadi `reserved`.
+5. Seller wajib melanjutkan transaksi dalam 48 jam setelah menerima offer.
+6. Buyer wajib melanjutkan transaksi dalam 48 jam setelah offer diterima seller.
+7. Jika seller tidak merespons offer selama 48 jam, offer menjadi `expired` dan
+   posting kembali menjadi `active`.
+8. Jika seller menolak offer, offer menjadi `rejected` dan posting tetap
+   `active`.
+9. Jika buyer tidak melanjutkan transaksi selama 48 jam setelah offer diterima,
+   offer menjadi `expired` dan posting kembali menjadi `active`.
+10. Jika buyer ghosting setelah offer diterima, buyer mendapat suspend dan offer
+   tersebut dibatalkan.
+11. Jika seller ghosting setelah menerima offer, seller mendapat suspend dan
+   offer dianggap gagal.
+12. Seller dapat mengirim offer baru setelah offer sebelumnya gagal atau
     kedaluwarsa.
-15. Seller hanya dapat menerima satu offer untuk satu listing.
-16. Offer lain otomatis ditolak setelah satu offer diterima.
-17. Harga jual langsung tidak boleh lebih rendah dari harga minimum penawaran.
+13. Seller tidak dapat menerima offer lain selama listing berstatus `reserved`.
+14. Platform menolak offer di bawah harga minimum secara otomatis.
+15. Buyer dapat mengirim offer baru selama listing masih berstatus `active`.
+16. Harga minimum tidak ditampilkan kepada buyer.
+17. Seller dapat mengubah harga minimum sebelum ada offer yang diterima.
+18. Satu buyer hanya boleh memiliki satu offer aktif per listing.
+19. Buyer dapat membatalkan offer sebelum seller menerimanya.
+20. Buyer dapat mengirim offer baru setelah offer sebelumnya ditolak atau
+    kedaluwarsa.
+21. Seller hanya dapat menerima satu offer untuk satu listing.
+22. Offer lain otomatis ditolak setelah satu offer diterima.
+23. Harga jual langsung tidak boleh lebih rendah dari harga minimum penawaran.
 
 ### Perubahan listing
 
 - Seller dapat mengedit listing saat status `draft` atau `active`.
 - Seller tidak dapat mengubah harga, foto, kondisi, atau deskripsi saat `reserved`.
 - Seller tidak dapat mengedit listing setelah pembayaran.
-- Perubahan besar setelah listing aktif memerlukan kurasi ulang.
+- Perubahan besar setelah listing aktif memerlukan pemeriksaan ulang informasi
+  kondisi barang.
 - Listing yang sedang dalam proses komplain tidak dapat diedit.
 
 ### Menonaktifkan listing
@@ -152,10 +161,18 @@ baru. Platform tidak melakukan payout sebelum `payment_state` menjadi `paid`.
 
 1. Buyer dapat memilih pembayaran uang muka (DP) atau pembayaran penuh.
 2. DP hanya dapat digunakan untuk transaksi COD. Pembayaran penuh dapat digunakan untuk COD atau pengiriman.
-3. Platform MVP mendukung pembayaran melalui virtual account (VA) dan e-wallet.
-4. Semua transaksi wajib dibuat dan diproses melalui platform.
-5. Setelah buyer melakukan pembayaran, platform menahan dana sampai transaksi selesai, auto-release, atau komplain diputuskan.
-6. Ketentuan pembayaran dan penyelesaian transaksi mengikuti [SLA transaksi](SLA.md).
+3. Pada Fase 1, buyer melakukan pembayaran sesuai instruksi platform dan dana
+   dikelola secara manual.
+4. Semua transaksi wajib dibuat dan dicatat melalui platform.
+5. Platform menahan dana sampai transaksi selesai, refund diputuskan, atau
+   komplain diputuskan.
+6. Platform menampilkan rekening tujuan, nominal, batas waktu, dan kode referensi
+   unik untuk setiap pembayaran.
+7. Buyer wajib mengunggah bukti pembayaran. Admin memverifikasi nominal, rekening
+   tujuan, kode referensi, dan waktu pembayaran sebelum status menjadi `paid`.
+8. Pembayaran kurang, lebih, duplikat, atau tanpa referensi tetap berstatus
+   `payment_pending` dan ditandai untuk rekonsiliasi manual oleh admin.
+9. Ketentuan pembayaran dan penyelesaian transaksi mengikuti [SLA transaksi](SLA.md).
 
 ### Pengiriman dan bukti transaksi
 
@@ -163,6 +180,8 @@ baru. Platform tidak melakukan payout sebelum `payment_state` menjadi `paid`.
 2. Untuk transaksi pengiriman, seller wajib mengunggah nomor resi ekspedisi ke platform dalam 2 x 24 jam.
 3. Seller dapat mengunggah foto dan video barang sebelum dikirim.
 4. Setelah menerima barang, buyer wajib mengunggah minimal tiga foto saat membuka paket. Video bersifat opsional.
+5. Karena integrasi status ekspedisi ditunda, admin mencatat status `received`
+   berdasarkan bukti pengiriman atau konfirmasi buyer.
 
 ### Refund
 
@@ -183,13 +202,28 @@ baru. Platform tidak melakukan payout sebelum `payment_state` menjadi `paid`.
 6. Informasi harga mempertimbangkan kondisi barang, ukuran, dan periode transaksi.
 7. Jika data belum mencapai lima transaksi, platform menampilkan bahwa data belum cukup.
 
+### Rekomendasi produk
+
+- Setiap Product Detail Page memiliki bagian rekomendasi produk.
+
+### Privasi foto dan video
+
+- Foto atau video tertentu yang diunggah hanya dapat dilihat oleh user yang
+  mengunggahnya dan admin.
+
 ### Kurasi dan kondisi produk
 
-1. Seller wajib mengunggah minimal tiga foto untuk setiap produk.
-2. Platform memberikan rating untuk produk yang telah dikurasi.
-3. Rating mencakup persentase kondisi barang serta penjelasan mengenai kelebihan dan kekurangannya.
-4. Rating 100% berarti seperti baru, 90% sangat baik, 75% baik, dan 50% cukup.
-5. Produk dengan rating di bawah 50% tidak lolos kurasi.
+1. Seller menentukan kondisi barang dalam persentase 1-100%.
+2. Seller wajib menjelaskan kekurangan, kondisi fisik, dan informasi relevan
+   lainnya.
+3. Pada MVP, informasi kondisi barang sepenuhnya berasal dari seller.
+4. Pada Fase 2, kurator memverifikasi kondisi barang dan dapat memberi
+   rekomendasi atau validasi terkait harga, brand, dan informasi produk.
+5. Setiap kurator memiliki profil kurator.
+6. Kurator menerima komisi dari transaksi berhasil untuk barang yang dikurasi.
+7. Rating 100% berarti seperti baru, 90% sangat baik, 75% baik, dan 50% cukup.
+8. Produk dengan rating di bawah 50% tidak lolos kurasi setelah sistem kurator
+   diterapkan pada Fase 2.
 
 ### Barang terlarang
 
@@ -204,8 +238,10 @@ baru. Platform tidak melakukan payout sebelum `payment_state` menjadi `paid`.
 2. Seller dapat memberi rating buyer setelah transaksi selesai.
 3. Setiap pihak hanya dapat memberi satu rating per transaksi.
 4. Rating hanya aktif setelah tidak ada komplain.
-5. Pengguna dapat melaporkan ulasan yang menyesatkan atau mengandung pelecehan.
-6. Platform dapat menyembunyikan ulasan yang melanggar aturan.
+5. Review terhadap buyer dan seller bersifat publik.
+6. Pengguna dapat melaporkan ulasan yang menyesatkan atau mengandung pelecehan.
+7. Platform dapat menyembunyikan ulasan yang melanggar aturan.
+8. Akun user menampilkan informasi last login untuk keperluan informatif.
 
 ### Pencarian dan filter listing
 
@@ -224,22 +260,43 @@ baru. Platform tidak melakukan payout sebelum `payment_state` menjadi `paid`.
 4. Platform menyimpan waktu dan lokasi COD untuk bukti no-show.
 5. Buyer dan seller dapat mengubah jadwal sebelum waktu pertemuan.
 
+### Live chat
+
+1. Platform menyediakan live chat di dalam aplikasi.
+2. Untuk MVP, live chat dapat menggunakan API atau service gratis jika memenuhi
+   kebutuhan.
+3. Buyer dan seller dapat menggunakan live chat untuk membahas transaksi,
+   termasuk pengaturan lokasi, tanggal, dan jam COD.
+
+Jika seller tidak hadir pada waktu COD yang disepakati:
+
+1. Dana dikembalikan kepada buyer.
+2. Buyer dapat melaporkan seller.
+3. Pelanggaran dapat memengaruhi rating atau reputasi seller.
+4. Seller dapat dikenai suspend atau ban berdasarkan tingkat atau frekuensi
+   pelanggaran.
+
+Status penalti:
+
+- **Suspend:** Akun dinonaktifkan sementara selama durasi tertentu.
+- **Ban:** Akun dinonaktifkan secara permanen.
+
 ### Onboarding seller
 
-1. Seller wajib memverifikasi email dan nomor telepon sebelum membuat listing.
-2. Seller dapat membuat listing tanpa rekening payout terverifikasi.
-3. Seller wajib memverifikasi rekening payout sebelum menerima dana.
-4. Seller dengan verifikasi gagal tidak dapat membuat listing aktif.
-5. Akun yang dibatasi tidak dapat membuat listing atau menerima offer.
+1. Seller wajib memverifikasi akun menggunakan OTP WhatsApp sebelum membuat
+   listing.
+2. Seller dapat membuat listing tanpa mengisi nomor rekening saat registrasi.
+3. Seller wajib memberikan nomor rekening ketika transaksi akan diselesaikan.
+4. Akun yang dibatasi tidak dapat membuat listing atau menerima offer.
 
 ### Onboarding buyer
 
-1. Buyer wajib memverifikasi email dan nomor telepon sebelum mengirim offer.
-2. Buyer wajib memverifikasi data pembayaran sebelum checkout.
-3. Buyer dapat menjelajah listing tanpa verifikasi.
-4. Buyer dengan akun yang dibatasi tidak dapat mengirim offer atau melakukan
+1. Buyer wajib memverifikasi akun menggunakan OTP WhatsApp sebelum mengirim
+   offer.
+2. Buyer dapat menjelajah listing tanpa verifikasi.
+3. Buyer dengan akun yang dibatasi tidak dapat mengirim offer atau melakukan
    pembayaran.
-5. Satu buyer hanya boleh memiliki satu akun aktif.
+4. Satu buyer hanya boleh memiliki satu akun aktif.
 
 ### Banding akun
 

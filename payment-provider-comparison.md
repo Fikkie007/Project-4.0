@@ -1,7 +1,10 @@
 # Indonesian payment provider comparison
 
 Research date: 2026-09-21  
-Scope: Indonesian marketplace for second-hand goods, requiring virtual accounts, e-wallets, payment webhooks, refunds, seller disbursement, and marketplace-style fund holding.
+Scope: Future-phase research for an Indonesian marketplace that may later require
+virtual accounts, e-wallets, payment webhooks, refunds, seller disbursement, and
+marketplace-style fund holding. Fase 1 uses manual fund management without a
+payment gateway.
 
 ## Recommendation
 

@@ -7,18 +7,31 @@ Buyer memilih salah satu metode pembayaran:
 1. DP, hanya untuk transaksi COD
 2. Pembayaran penuh, untuk COD atau pengiriman
 
-Platform MVP mendukung pembayaran melalui virtual account (VA) dan e-wallet.
+Pada Fase 1, buyer membayar sesuai instruksi platform dan dana dikelola secara
+manual. Fase 1 belum menggunakan payment gateway.
 
 Transaksi aktif setelah platform menerima konfirmasi pembayaran. Dana tidak
 diteruskan kepada seller sebelum syarat penyelesaian transaksi terpenuhi.
 
+Setiap transaksi memiliki rekening tujuan, nominal, batas waktu, dan kode
+referensi unik. Buyer wajib mengunggah bukti pembayaran. Admin memverifikasi
+nominal, rekening tujuan, kode referensi, dan waktu pembayaran sebelum mengubah
+status menjadi `paid`.
+
+Pembayaran kurang, lebih, duplikat, atau tanpa referensi tetap berstatus
+`payment_pending` dan masuk antrean rekonsiliasi manual. Admin mencatat hasil
+rekonsiliasi serta keputusan pengembalian atau penyesuaian dana dalam audit log.
+Pembayaran yang tidak dapat diverifikasi tidak mengaktifkan transaksi.
+
 ## 2. Aturan offer
 
-1. Offer berlaku selama 1 x 24 jam.
+1. Offer berlaku sampai seller menerima, menolak, atau tidak merespons selama
+   48 jam.
 2. Seller dapat menerima atau menolak offer selama periode tersebut.
 3. Buyer dapat membatalkan offer sebelum seller menerimanya.
-4. Setelah offer diterima, buyer memiliki 1 x 24 jam untuk membayar.
-5. Offer kedaluwarsa dan listing kembali tersedia jika buyer tidak membayar.
+4. Setelah offer diterima, buyer memiliki 48 jam untuk melanjutkan transaksi.
+5. Offer kedaluwarsa, status offer menjadi `expired`, dan listing kembali
+   berstatus `active` jika buyer tidak membayar.
 
 ## 3. Transaksi COD dengan DP
 
@@ -49,7 +62,8 @@ refund pada bagian 7.
 2. Seller wajib mengunggah nomor resi dalam 2 x 24 jam setelah pembayaran.
 3. Jika seller tidak mengunggah resi sesuai batas waktu, transaksi dibatalkan.
 4. Buyer menerima refund 100% jika seller gagal mengirim barang.
-5. Status diterima mengikuti status resmi ekspedisi.
+5. Karena integrasi status ekspedisi ditunda pada MVP, admin mencatat status
+   diterima berdasarkan bukti pengiriman atau konfirmasi buyer.
 6. Buyer memiliki 2 x 24 jam sejak status diterima untuk mengonfirmasi atau
    mengajukan komplain.
 7. Buyer wajib mengunggah minimal 3 foto unboxing. Video bersifat opsional.
@@ -66,6 +80,11 @@ komplain jika status ekspedisi salah, paket hilang, atau paket rusak.
 3. Untuk pengiriman, dana auto-release setelah 2 x 24 jam sejak status paket
    diterima jika buyer tidak merespons.
 4. Jika buyer mengajukan komplain sebelum batas waktu, dana tetap ditahan.
+
+Job terjadwal memeriksa batas waktu auto-release dan membuat tugas payout hanya
+sekali untuk setiap transaksi. Jika job gagal, transaksi tetap tertahan dan
+masuk alert operasional untuk diproses ulang oleh admin tanpa membuat payout
+ganda.
 
 ## 7. Refund dan pembatalan
 
@@ -112,20 +131,21 @@ akibat penggunaan buyer, atau perbedaan warna kecil karena layar dan pencahayaan
 
 ## 10. Pembayaran gagal dan payout
 
-1. Pembayaran gagal menggunakan status `payment_failed` dan tidak mengaktifkan
-   transaksi.
-2. Buyer dapat mencoba pembayaran ulang tanpa membuat transaksi baru.
-3. Jika dana terpotong tetapi status gagal, platform melakukan rekonsiliasi.
-4. Webhook pembayaran harus idempotent untuk mencegah tagihan ganda.
-5. Payout menggunakan status `payout_pending`, `paid`, atau `payout_failed`.
-6. Platform mencoba ulang payout yang gagal dan memberi notifikasi kepada seller.
+1. Platform mencatat pembayaran sebagai `payment_pending` sampai bukti pembayaran
+   diverifikasi.
+2. Pembayaran yang telah diverifikasi menggunakan status `paid`.
+3. Jika pembayaran tidak dapat diverifikasi, transaksi tidak diaktifkan.
+4. Platform melakukan verifikasi dan rekonsiliasi secara manual.
+5. Payout menggunakan status `payout_pending`, `paid_out`, atau `payout_failed`.
+6. Platform mencoba ulang payout yang gagal dengan idempotency key dan memberi
+   notifikasi kepada seller.
 
 ## 11. Ringkasan batas waktu
 
 | Aktivitas | Batas waktu |
 | --- | --- |
-| Masa berlaku offer | 1 x 24 jam |
-| Pembayaran setelah offer diterima | 1 x 24 jam |
+| Masa berlaku offer | 48 jam |
+| Pembayaran setelah offer diterima | 48 jam |
 | Seller mengunggah resi | 2 x 24 jam setelah pembayaran |
 | Buyer mengajukan komplain | 2 x 24 jam setelah status diterima |
 | Tanggapan seller atas komplain | 1 x 24 jam |
@@ -186,7 +206,7 @@ Diagram canonical tersedia di
 ## 18. Monitoring dan alerting
 
 1. Platform memantau availability, error rate, latency, dan penggunaan database.
-2. Platform memantau pembayaran gagal, webhook tertunda, payout gagal, dan
+2. Platform memantau pembayaran yang belum diverifikasi, payout gagal, dan
    transaksi macet.
 3. Platform memantau jumlah komplain dan refund.
 4. Insiden kritis memicu alert maksimal dalam 5 menit.
@@ -216,10 +236,10 @@ Diagram canonical tersedia di
 
 ## 21. Kurasi listing
 
-1. Kurator meninjau listing maksimal dalam 2 hari kerja.
+1. Pada Fase 2, kurator meninjau listing maksimal dalam 2 hari kerja.
 2. Listing yang ditolak wajib memiliki alasan penolakan.
 3. Seller dapat memperbaiki dan mengirim ulang listing yang ditolak.
-4. Kurator meninjau ulang revisi maksimal dalam 1 hari kerja.
+4. Pada Fase 2, kurator meninjau ulang revisi maksimal dalam 1 hari kerja.
 5. Listing tanpa minimal 3 foto tidak masuk antrean kurasi.
 6. Platform dapat menyembunyikan atau menghapus listing yang melanggar aturan.
 
@@ -253,8 +273,8 @@ Diagram canonical tersedia di
 
 ## 25. Verifikasi identitas
 
-1. Buyer dan seller wajib memverifikasi email serta nomor telepon.
-2. Seller wajib memverifikasi rekening payout.
+1. Buyer dan seller wajib memverifikasi akun menggunakan OTP WhatsApp.
+2. Seller wajib memberikan nomor rekening saat transaksi akan diselesaikan.
 3. Transaksi senilai Rp5.000.000 atau lebih wajib melalui verifikasi identitas
    tambahan.
 4. Satu rekening payout tidak boleh digunakan oleh banyak akun tanpa verifikasi.
@@ -264,7 +284,8 @@ Diagram canonical tersedia di
 
 1. Biaya platform adalah 10% dari harga barang.
 2. Ongkos kirim tidak termasuk dasar perhitungan biaya platform.
-3. Biaya payment gateway tidak termasuk dasar perhitungan biaya platform.
+3. Biaya pemindahan dana, jika ada, tidak termasuk dasar perhitungan biaya
+   platform.
 4. Refund karena buyer berubah pikiran dipotong 10% dari harga barang.
 5. Refund karena kesalahan seller atau platform tidak dipotong biaya platform.
 

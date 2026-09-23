@@ -12,7 +12,7 @@
   ],
   "nodes": [
     { "id": "start", "lane": "main", "col": 0, "width": 120, "type": "external", "label": "Transaksi dibuat" },
-    { "id": "payment", "lane": "main", "col": 1, "width": 150, "type": "security", "label": "Pembayaran" },
+    { "id": "payment", "lane": "main", "col": 1, "width": 150, "type": "security", "label": "Pembayaran manual" },
     { "id": "method", "lane": "main", "col": 2, "width": 140, "type": "frontend", "label": "Pilih metode" },
     { "id": "cod", "lane": "main", "col": 3, "width": 140, "type": "external", "label": "COD selesai", "yOffset": -42 },
     { "id": "shipment", "lane": "main", "col": 3, "width": 140, "type": "external", "label": "Kirim + resi", "yOffset": 42 },
@@ -24,11 +24,11 @@
   ],
   "edges": [
     { "id": "start-payment", "from": "start", "to": "payment", "role": "main" },
-    { "id": "payment-method", "from": "payment", "to": "method", "label": "Berhasil / retry jika gagal", "role": "main" },
+    { "id": "payment-method", "from": "payment", "to": "method", "label": "Bukti diverifikasi", "role": "main" },
     { "id": "method-cod", "from": "method", "to": "cod", "label": "COD", "role": "branch" },
     { "id": "method-shipment", "from": "method", "to": "shipment", "label": "Pengiriman: pembayaran penuh", "role": "branch" },
     { "id": "cod-confirm", "from": "cod", "to": "confirm", "label": "Konfirmasi / auto-release", "role": "main" },
-    { "id": "shipment-received", "from": "shipment", "to": "received", "label": "Resi valid", "role": "main" },
+    { "id": "shipment-received", "from": "shipment", "to": "received", "label": "Admin catat status diterima", "role": "main" },
     { "id": "received-confirm", "from": "received", "to": "confirm", "label": "Sesuai / auto-release", "role": "main" },
     { "id": "received-dispute", "from": "received", "to": "dispute", "label": "Tidak sesuai", "role": "error" },
     { "id": "confirm-payout", "from": "confirm", "to": "payout", "label": "Transaksi selesai", "role": "main" },

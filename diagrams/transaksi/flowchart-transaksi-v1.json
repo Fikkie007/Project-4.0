@@ -23,7 +23,7 @@
     { "id": "listing", "lane": "main", "col": 0, "type": "external", "label": "Buat listing" },
     { "id": "curation", "lane": "main", "col": 1, "type": "backend", "label": "Kurasi produk" },
     { "id": "browse", "lane": "main", "col": 2, "type": "frontend", "label": "Pilih produk" },
-    { "id": "payment", "lane": "main", "col": 3, "width": 160, "type": "security", "label": "Bayar melalui platform" },
+    { "id": "payment", "lane": "main", "col": 3, "width": 160, "type": "security", "label": "Bayar manual" },
     { "id": "method", "lane": "main", "col": 4, "width": 160, "type": "frontend", "label": "Pilih metode transaksi" },
     { "id": "validation", "lane": "main", "col": 5, "width": 140, "type": "backend", "label": "Validasi transaksi" },
     { "id": "refund", "lane": "exception", "col": 5, "type": "security", "label": "Proses refund" },
@@ -33,7 +33,7 @@
     { "from": "listing", "to": "curation", "label": "diajukan", "role": "main" },
     { "from": "curation", "to": "browse", "label": "ditampilkan", "role": "main" },
     { "from": "browse", "to": "payment", "label": "checkout / offer diterima", "role": "main" },
-    { "from": "payment", "to": "method", "label": "dana ditahan", "role": "main" },
+    { "from": "payment", "to": "method", "label": "bukti diverifikasi; dana ditahan", "role": "main" },
     { "from": "method", "to": "validation", "label": "COD atau pengiriman", "role": "main" },
     { "from": "validation", "to": "release", "label": "sesuai", "role": "main" },
     { "from": "validation", "to": "refund", "label": "tidak sesuai", "role": "error" }
