@@ -27,3 +27,11 @@
   MVP utama.
 - Detail opsi, batasan, dan risiko tersedia di
   [live-chat-research.md](../research/live-chat-research.md).
+
+## WhatsApp OTP MVP
+
+- Development memakai mock OTP; demo tertutup dapat memakai trial provider.
+- MVP publik memakai Meta WhatsApp Cloud API direct jika budget pay-as-you-go tersedia.
+- Tidak memakai WhatsApp Business App atau automasi WhatsApp Web sebagai backend OTP.
+- Detail biaya, trial, batasan, dan opsi OSS tersedia di
+  [whatsapp-otp-mvp-comparison.md](../research/whatsapp-otp-mvp-comparison.md).
