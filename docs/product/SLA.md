@@ -2,6 +2,53 @@
 
 ## 1. Aturan pembayaran
 
+### Status bisnis transaksi
+
+Platform menyimpan status offer, pembayaran, fulfillment, payout, dan refund
+secara terpisah.
+
+#### Offer state
+
+- `pending`
+- `accepted`
+- `rejected`
+- `expired`
+- `cancelled`
+
+#### Payment state
+
+- `payment_pending`
+- `partially_paid`
+- `paid`
+- `refunded`
+
+#### Fulfillment state
+
+- `awaiting_cod`
+- `awaiting_shipment`
+- `shipped`
+- `received`
+- `disputed`
+- `completed`
+- `cancelled`
+
+#### Payout state
+
+- `payout_pending`
+- `paid_out`
+- `payout_failed`
+
+#### Refund state
+
+- `refund_pending`
+- `refund_approved`
+- `refunded`
+- `refund_failed`
+
+Status `partially_paid` digunakan untuk pembayaran DP. Status `paid` digunakan
+untuk pembayaran penuh. Payment state dan refund state dicatat terpisah karena
+refund dapat masih diproses setelah pembayaran diverifikasi.
+
 Buyer memilih salah satu metode pembayaran:
 
 1. DP, hanya untuk transaksi COD
@@ -25,13 +72,23 @@ Pembayaran yang tidak dapat diverifikasi tidak mengaktifkan transaksi.
 
 ## 2. Aturan offer
 
-1. Offer berlaku sampai seller menerima, menolak, atau tidak merespons selama
-   48 jam.
-2. Seller dapat menerima atau menolak offer selama periode tersebut.
-3. Buyer dapat membatalkan offer sebelum seller menerimanya.
-4. Setelah offer diterima, buyer memiliki 48 jam untuk melanjutkan transaksi.
-5. Offer kedaluwarsa, status offer menjadi `expired`, dan listing kembali
-   berstatus `active` jika buyer tidak membayar.
+1. Saat buyer mengajukan offer, status offer menjadi `pending` dan seller
+   memiliki waktu 48 jam untuk menerima atau menolak offer.
+2. Jika seller tidak merespons dalam 48 jam sejak offer diajukan, status offer
+   menjadi `expired` dan listing kembali berstatus `active`.
+3. Seller dapat menerima atau menolak offer selama periode tersebut.
+4. Jika seller menolak offer, status offer menjadi `rejected` dan listing tetap
+   berstatus `active`.
+5. Buyer dapat membatalkan offer sebelum seller menerimanya. Status offer
+   menjadi `cancelled` dan listing tetap berstatus `active`.
+6. Setelah seller menerima offer, status offer menjadi `accepted` dan buyer
+   memiliki waktu 48 jam untuk melakukan pembayaran yang dipilih.
+7. Jika buyer tidak melakukan pembayaran dalam 48 jam setelah offer diterima,
+   status offer menjadi `expired` dan listing kembali berstatus `active`.
+8. Jika buyer tidak membayar tanpa alasan yang disetujui, buyer dapat dikenai
+   suspend sesuai aturan penalti platform.
+9. Jika seller membatalkan offer yang sudah diterima tanpa alasan yang
+   disetujui, status offer menjadi `cancelled` dan seller dapat dikenai suspend.
 
 ## 3. Transaksi COD dengan DP
 
@@ -44,6 +101,7 @@ Pembayaran yang tidak dapat diverifikasi tidak mengaktifkan transaksi.
 
 Jika buyer membatalkan tanpa kesalahan seller, DP menjadi hak seller. Jika
 seller membatalkan atau barang tidak sesuai, DP dikembalikan penuh kepada buyer.
+Biaya platform tidak dikenakan jika transaksi belum selesai.
 
 ## 4. Transaksi pembayaran penuh
 
@@ -52,16 +110,20 @@ seller membatalkan atau barang tidak sesuai, DP dikembalikan penuh kepada buyer.
 3. Dana ditahan sampai transaksi selesai atau komplain diputuskan.
 4. Buyer dan seller mengonfirmasi transaksi selesai.
 5. Platform memproses payout kepada seller dalam 1 hari kerja.
+6. Payout seller adalah harga barang dikurangi biaya platform 10%. Ongkos kirim
+   tidak termasuk dalam biaya platform maupun payout seller.
 
 Buyer dapat membatalkan sebelum seller mengirim barang. Refund mengikuti aturan
-refund pada bagian 7.
+refund pada bagian 7. Jika transaksi selesai, biaya platform dipotong dari payout
+seller.
 
 ## 5. Ketentuan pengiriman
 
 1. Transaksi pengiriman wajib menggunakan pembayaran penuh.
 2. Seller wajib mengunggah nomor resi dalam 2 x 24 jam setelah pembayaran.
 3. Jika seller tidak mengunggah resi sesuai batas waktu, transaksi dibatalkan.
-4. Buyer menerima refund 100% jika seller gagal mengirim barang.
+4. Buyer menerima kembali 100% harga barang dan ongkos kirim jika seller gagal
+   mengirim barang.
 5. Karena integrasi status ekspedisi ditunda pada MVP, admin mencatat status
    diterima berdasarkan bukti pengiriman atau konfirmasi buyer.
 6. Buyer memiliki 2 x 24 jam sejak status diterima untuk mengonfirmasi atau
@@ -88,13 +150,21 @@ ganda.
 
 ## 7. Refund dan pembatalan
 
-1. Seller terbukti salah atau barang tidak sesuai: buyer menerima refund 100%.
-2. Buyer berubah pikiran tanpa kesalahan seller: refund dipotong biaya platform
-   10%.
-3. Kesalahan platform atau payment provider: buyer menerima refund 100%.
-4. Buyer tidak dapat membatalkan sepihak setelah seller mengunggah resi.
-5. Seller yang membatalkan setelah pembayaran wajib mengembalikan dana 100%.
-6. Seller yang gagal mengirim sesuai batas waktu wajib mengembalikan dana 100%.
+1. Seller terbukti salah atau barang tidak sesuai: buyer menerima kembali 100%
+   harga barang dan ongkos kirim tanpa potongan biaya platform. Seller
+   menanggung ongkos retur.
+2. Buyer berubah pikiran tanpa kesalahan seller: buyer menerima harga barang
+   dikurangi biaya platform 10%.
+3. Ongkos kirim yang sudah digunakan tidak dikembalikan jika buyer berubah
+   pikiran. Jika barang belum dikirim, ongkos kirim dikembalikan penuh. Buyer
+   menanggung ongkos retur jika barang sudah dikirim.
+4. Kesalahan platform atau payment provider: buyer menerima kembali 100% harga
+   barang dan ongkos kirim tanpa potongan biaya platform.
+5. Buyer tidak dapat membatalkan sepihak setelah seller mengunggah resi.
+6. Seller yang membatalkan setelah pembayaran wajib mengembalikan 100% harga
+   barang dan ongkos kirim.
+7. Seller yang gagal mengirim sesuai batas waktu wajib mengembalikan 100% harga
+   barang dan ongkos kirim.
 
 Refund diproses maksimal 3 hari kerja setelah keputusan refund dibuat.
 
@@ -116,18 +186,28 @@ akibat penggunaan buyer, atau perbedaan warna kecil karena layar dan pencahayaan
 3. Platform memutuskan komplain dalam 3 hari kerja.
 4. Dana tetap ditahan selama proses review.
 5. Jika seller terbukti salah, seller menanggung ongkos retur.
-6. Jika buyer berubah pikiran, buyer menanggung ongkos retur.
+6. Jika komplain dinyatakan sebagai pembatalan karena buyer berubah pikiran,
+   buyer menanggung ongkos retur dan refund mengikuti aturan pada bagian 7.
 7. Buyer wajib mengunggah bukti pengiriman retur.
 8. Platform memproses refund sesuai keputusan komplain.
+9. Jika seller tidak merespons, platform memutuskan berdasarkan bukti yang
+   tersedia.
+10. Setelah payout selesai, komplain baru tidak dapat diajukan kecuali untuk
+    fraud atau pelanggaran serius.
 
 ## 9. COD no-show
 
 1. Buyer tidak hadir tanpa alasan yang disetujui: DP menjadi hak seller.
-2. Seller tidak hadir: DP dikembalikan penuh kepada buyer.
-3. Kedua pihak tidak hadir: transaksi dibatalkan dan DP dikembalikan kepada
-   buyer.
-4. Platform menyimpan bukti waktu dan lokasi pertemuan.
-5. Pihak yang tidak hadir dapat menerima penalti reputasi.
+2. Buyer tidak hadir pada transaksi dengan pembayaran penuh: buyer menerima
+   refund 100% harga barang.
+3. Seller tidak hadir: buyer menerima refund 100% harga barang dan ongkos kirim
+   jika ada.
+4. Kedua pihak tidak hadir: transaksi dibatalkan, buyer menerima refund 100%,
+   dan tidak ada payout kepada seller.
+5. Pihak yang hadir wajib mengirim bukti melalui platform.
+6. Platform menyimpan bukti waktu dan lokasi pertemuan.
+7. Admin memutuskan sengketa berdasarkan bukti yang tersedia dari kedua pihak.
+8. Pihak yang tidak hadir dapat menerima penalti reputasi atau suspend.
 
 ## 10. Pembayaran gagal dan payout
 
@@ -156,7 +236,7 @@ akibat penggunaan buyer, atau perbedaan warna kecil karena layar dan pencahayaan
 ## 12. Flowchart transaksi
 
 Diagram canonical tersedia di
-[`diagrams/sla/SLA-flowchart.html`](diagrams/sla/SLA-flowchart.html).
+[`SLA-flowchart.html`](../../diagrams/sla/SLA-flowchart.html).
 
 ## 13. Customer support
 
@@ -286,8 +366,12 @@ Diagram canonical tersedia di
 2. Ongkos kirim tidak termasuk dasar perhitungan biaya platform.
 3. Biaya pemindahan dana, jika ada, tidak termasuk dasar perhitungan biaya
    platform.
-4. Refund karena buyer berubah pikiran dipotong 10% dari harga barang.
-5. Refund karena kesalahan seller atau platform tidak dipotong biaya platform.
+4. Biaya platform untuk transaksi selesai hanya dikenakan jika transaksi selesai
+   dan dipotong dari payout seller. Pengecualian hanya berlaku untuk refund
+   karena buyer berubah pikiran, yang dikenai potongan 10% dari harga barang.
+5. Payout seller adalah harga barang dikurangi biaya platform. Ongkos kirim
+   tidak termasuk dalam payout seller.
+6. Refund karena kesalahan seller atau platform tidak dipotong biaya platform.
 
 ## 27. Ongkos kirim
 
@@ -296,3 +380,79 @@ Diagram canonical tersedia di
 3. Seller menanggung ongkos retur jika seller terbukti salah.
 4. Buyer menanggung ongkos retur jika buyer berubah pikiran.
 5. Platform tidak menghitung ongkos kirim sebagai dasar biaya platform.
+
+## 28. Release gate MVP
+
+MVP hanya dapat dirilis jika seluruh skenario berikut lulus pengujian end-to-end.
+
+### 1. COD sampai selesai
+
+- Buyer memilih DP atau pembayaran penuh.
+- Admin memverifikasi pembayaran.
+- Transaksi tidak aktif sebelum pembayaran diverifikasi.
+- Buyer dan seller menyepakati waktu serta lokasi COD.
+- Seller menandai COD selesai.
+- Buyer mengonfirmasi transaksi, atau auto-release berjalan setelah 1 x 24 jam
+  tanpa respons.
+- Payout seller mengikuti aturan biaya platform.
+- Transaksi menjadi `completed` dan payout menjadi `paid_out`.
+
+### 2. Pengiriman dengan pembayaran penuh
+
+- Buyer membayar penuh dan pembayaran diverifikasi.
+- Seller mengunggah resi maksimal 2 x 24 jam.
+- Admin mencatat status `received` berdasarkan bukti pengiriman atau konfirmasi
+  buyer.
+- Buyer memiliki 2 x 24 jam untuk mengonfirmasi atau mengajukan komplain.
+- Jika tidak ada komplain, auto-release berjalan setelah batas waktu.
+- Transaksi menjadi `completed` dan payout diproses.
+
+### 3. Refund karena kesalahan seller
+
+- Buyer mengajukan komplain dengan bukti.
+- Dana tetap ditahan selama pemeriksaan.
+- Seller diberi waktu 1 x 24 jam untuk merespons.
+- Platform memutuskan maksimal dalam 3 hari kerja.
+- Jika seller terbukti salah, buyer menerima 100% harga barang dan ongkos
+  kirim.
+- Seller menanggung ongkos retur.
+- Tidak ada biaya platform yang dipotong.
+
+### 4. Buyer atau seller tidak hadir saat COD
+
+- Platform menyimpan waktu dan lokasi pertemuan.
+- Pihak yang hadir mengirimkan bukti.
+- Buyer tidak hadir: DP menjadi hak seller; pembayaran penuh dikembalikan.
+- Seller tidak hadir: buyer menerima refund 100%.
+- Kedua pihak tidak hadir: transaksi dibatalkan dan tidak ada payout.
+- Pihak yang melanggar dapat menerima penalti reputasi atau suspend.
+
+### 5. Pelanggaran aturan ghosting 48 jam
+
+- Seller tidak merespons offer selama 48 jam: offer `expired`, listing kembali
+  `active`.
+- Buyer tidak membayar dalam 48 jam setelah offer diterima: offer `expired`,
+  listing kembali `active`.
+- Ghosting tanpa alasan yang disetujui dapat menyebabkan suspend.
+- Offer yang kedaluwarsa atau dibatalkan tidak menghasilkan payout.
+
+### 6. Pembayaran bermasalah
+
+Untuk pembayaran kurang, lebih, duplikat, tanpa referensi, atau tidak dapat
+diverifikasi:
+
+- Status tetap `payment_pending`.
+- Transaksi tidak menjadi aktif.
+- Dana tidak diteruskan kepada seller.
+- Admin memasukkan kasus ke rekonsiliasi manual.
+- Admin mencatat hasil dan keputusan refund atau penyesuaian.
+- Setiap keputusan memiliki alasan dan bukti.
+
+### 7. Auto-release gagal
+
+- Dana tetap tertahan jika auto-release gagal.
+- Sistem tidak membuat payout ganda.
+- Kasus masuk ke alert operasional.
+- Admin dapat menjalankan proses ulang.
+- Payout hanya dapat dibuat satu kali untuk transaksi tersebut.
+- Setelah transfer berhasil, payout menjadi `paid_out`.

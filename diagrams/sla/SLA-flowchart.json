@@ -3,36 +3,40 @@
   "diagram_type": "workflow",
   "meta": {
     "title": "Alur penyelesaian transaksi SLA",
-    "quality_profile": "showcase",
-    "viewBox": [1500, 896]
+    "quality_profile": "showcase"
   },
   "lanes": [
     { "id": "main", "label": "Alur transaksi" },
-    { "id": "exception", "label": "Dispute", "variant": "exception" }
+    { "id": "exception", "label": "Pengecualian", "variant": "exception" }
   ],
   "nodes": [
-    { "id": "start", "lane": "main", "col": 0, "width": 120, "type": "external", "label": "Transaksi dibuat" },
+    { "id": "offer", "lane": "main", "col": 0, "width": 160, "type": "frontend", "label": "Offer / beli langsung" },
     { "id": "payment", "lane": "main", "col": 1, "width": 150, "type": "security", "label": "Pembayaran manual" },
-    { "id": "method", "lane": "main", "col": 2, "width": 140, "type": "frontend", "label": "Pilih metode" },
-    { "id": "cod", "lane": "main", "col": 3, "width": 140, "type": "external", "label": "COD selesai", "yOffset": -42 },
-    { "id": "shipment", "lane": "main", "col": 3, "width": 140, "type": "external", "label": "Kirim + resi", "yOffset": 42 },
-    { "id": "received", "lane": "main", "col": 4, "width": 140, "type": "frontend", "label": "Paket diterima", "yOffset": 42 },
-    { "id": "confirm", "lane": "main", "col": 4, "width": 150, "type": "backend", "label": "Konfirmasi", "yOffset": -42 },
-    { "id": "dispute", "lane": "exception", "col": 4, "width": 150, "type": "security", "label": "Komplain", "yOffset": 130 },
-    { "id": "payout", "lane": "main", "col": 5, "width": 140, "type": "external", "label": "Payout seller", "yOffset": -42 },
-    { "id": "refund", "lane": "exception", "col": 5, "width": 140, "type": "security", "label": "Refund", "yOffset": 130 }
+    { "id": "verification", "lane": "main", "col": 2, "width": 160, "type": "backend", "label": "Verifikasi pembayaran" },
+    { "id": "method", "lane": "main", "col": 3, "width": 140, "type": "frontend", "label": "Pilih metode" },
+    { "id": "cod", "lane": "main", "col": 4, "width": 150, "type": "external", "label": "COD / no-show", "yOffset": -48 },
+    { "id": "shipment", "lane": "main", "col": 4, "width": 150, "type": "external", "label": "Kirim + resi", "yOffset": 48 },
+    { "id": "received", "lane": "main", "col": 5, "width": 150, "type": "frontend", "label": "Diterima + unboxing", "yOffset": 48 },
+    { "id": "confirm", "lane": "main", "col": 5, "width": 150, "type": "backend", "label": "Selesai / auto-release", "yOffset": -48 },
+    { "id": "payout", "lane": "main", "col": 5, "width": 150, "type": "external", "label": "Payout seller", "yOffset": -130 },
+    { "id": "reconciliation", "lane": "exception", "col": 2, "width": 170, "type": "security", "label": "Rekonsiliasi manual", "yOffset": 250 },
+    { "id": "dispute", "lane": "exception", "col": 5, "width": 150, "type": "security", "label": "Komplain", "yOffset": 150 },
+    { "id": "refund", "lane": "exception", "col": 3, "width": 150, "type": "security", "label": "Refund / DP seller", "yOffset": 250 }
   ],
   "edges": [
-    { "id": "start-payment", "from": "start", "to": "payment", "role": "main" },
-    { "id": "payment-method", "from": "payment", "to": "method", "label": "Bukti diverifikasi", "role": "main" },
-    { "id": "method-cod", "from": "method", "to": "cod", "label": "COD", "role": "branch" },
+    { "id": "offer-payment", "from": "offer", "to": "payment", "label": "Seller 48 jam; buyer 48 jam setelah diterima", "role": "main" },
+    { "id": "payment-verification", "from": "payment", "to": "verification", "label": "Bukti pembayaran", "role": "main" },
+    { "id": "verification-method", "from": "verification", "to": "method", "label": "Terverifikasi; dana ditahan", "role": "main" },
+    { "id": "verification-reconciliation", "from": "verification", "to": "reconciliation", "label": "Kurang / lebih / duplikat / tanpa referensi", "role": "error" },
+    { "id": "reconciliation-method", "from": "reconciliation", "to": "method", "label": "Disetujui setelah rekonsiliasi", "role": "branch" },
+    { "id": "method-cod", "from": "method", "to": "cod", "label": "COD: DP atau penuh", "role": "branch" },
     { "id": "method-shipment", "from": "method", "to": "shipment", "label": "Pengiriman: pembayaran penuh", "role": "branch" },
-    { "id": "cod-confirm", "from": "cod", "to": "confirm", "label": "Konfirmasi / auto-release", "role": "main" },
-    { "id": "shipment-received", "from": "shipment", "to": "received", "label": "Admin catat status diterima", "role": "main" },
-    { "id": "received-confirm", "from": "received", "to": "confirm", "label": "Sesuai / auto-release", "role": "main" },
-    { "id": "received-dispute", "from": "received", "to": "dispute", "label": "Tidak sesuai", "role": "error" },
-    { "id": "confirm-payout", "from": "confirm", "to": "payout", "label": "Transaksi selesai", "role": "main" },
-    { "id": "dispute-refund", "from": "dispute", "to": "refund", "label": "Seller/platform salah", "role": "error" }
+    { "id": "cod-confirm", "from": "cod", "to": "confirm", "label": "Selesai; auto-release 1 x 24 jam", "role": "main" },
+    { "id": "shipment-received", "from": "shipment", "to": "received", "label": "Resi 2 x 24 jam; admin catat diterima", "role": "main" },
+    { "id": "received-confirm", "from": "received", "to": "confirm", "label": "Buyer 2 x 24 jam; auto-release", "role": "main" },
+    { "id": "received-dispute", "from": "received", "to": "dispute", "label": "Komplain sebelum release", "role": "error" },
+    { "id": "confirm-payout", "from": "confirm", "to": "payout", "label": "Selesai; payout 1 hari kerja", "role": "main" },
+    { "id": "dispute-refund", "from": "dispute", "to": "refund", "label": "Seller / platform salah", "role": "error" }
   ],
-  "mainPath": ["start", "payment", "method", "shipment", "received", "confirm", "payout"]
+  "mainPath": ["offer", "payment", "verification", "method", "shipment", "received", "confirm", "payout"]
 }
